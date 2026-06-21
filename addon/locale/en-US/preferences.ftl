@@ -1,5 +1,9 @@
-pref-title = Addon Template Example
-pref-enable =
-    .label = Enable
-pref-input = Input
+pref-title = Zotero AI Summary
+pref-openai-api-key = OpenAI API key
+pref-openai-model = OpenAI model
+pref-summary-prompts = Summary prompts
+pref-summary-prompt-name = Name
+pref-summary-prompt-body = Prompt
+pref-summary-prompt-add = Add
+pref-summary-prompt-delete = Delete
 pref-help = { $name } Build { $version } { $time }
