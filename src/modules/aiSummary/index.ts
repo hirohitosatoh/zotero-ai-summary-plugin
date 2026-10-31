@@ -94,6 +94,7 @@ async function choosePrompt(): Promise<SummaryPrompt | undefined> {
 
   const dialogData: { [key: string]: any } = {
     promptIndex: "0",
+    loadCallback: () => renderPromptChoiceList(dialogData, prompts),
   };
   const dialog = new ztoolkit.Dialog(2, 2)
     .addCell(0, 0, {
@@ -101,30 +102,77 @@ async function choosePrompt(): Promise<SummaryPrompt | undefined> {
       properties: { innerHTML: "要約プロンプト" },
     })
     .addCell(0, 1, {
-      tag: "select",
+      tag: "div",
       namespace: "html",
+      id: "ai-summary-prompt-choice-list",
       attributes: {
-        "data-bind": "promptIndex",
-        "data-prop": "value",
+        role: "listbox",
       },
-      children: prompts.map((prompt, index) => ({
-        tag: "option",
-        namespace: "html",
-        attributes: { value: String(index) },
-        properties: { innerText: prompt.name },
-      })),
+      styles: {
+        minWidth: "280px",
+        maxWidth: "420px",
+        maxHeight: "220px",
+        overflowY: "auto",
+        border: "1px solid var(--material-border-color, #999)",
+        padding: "4px",
+      },
     })
     .addButton("OK", "confirm")
     .addButton("キャンセル", "cancel")
-    .setDialogData(dialogData)
-    .open("ChatGPTによる要約");
+    .setDialogData(dialogData);
 
   addon.data.dialog = dialog;
+  dialog.open("ChatGPTによる要約");
   await dialogData.unloadLock.promise;
   addon.data.dialog = undefined;
 
   if (dialogData._lastButtonId !== "confirm") return undefined;
   return prompts[Number(dialogData.promptIndex)];
+}
+
+function renderPromptChoiceList(
+  dialogData: { [key: string]: any },
+  prompts: SummaryPrompt[],
+) {
+  const doc = addon.data.dialog?.window?.document;
+  const list = doc?.getElementById("ai-summary-prompt-choice-list");
+  if (!doc || !list) return;
+
+  const render = () => {
+    list.replaceChildren();
+    prompts.forEach((prompt, index) => {
+      const button = doc.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "button",
+      ) as HTMLButtonElement;
+      const selected = String(index) === dialogData.promptIndex;
+
+      button.type = "button";
+      button.textContent = prompt.name;
+      button.setAttribute("role", "option");
+      button.setAttribute("aria-selected", String(selected));
+      button.style.display = "block";
+      button.style.width = "100%";
+      button.style.margin = "0 0 4px";
+      button.style.padding = "6px 8px";
+      button.style.textAlign = "left";
+      button.style.border = selected
+        ? "1px solid var(--accent-blue, #2d6cdf)"
+        : "1px solid transparent";
+      button.style.background = selected
+        ? "var(--accent-blue10, #dce8ff)"
+        : "transparent";
+      button.style.fontWeight = selected ? "600" : "400";
+
+      button.addEventListener("click", () => {
+        dialogData.promptIndex = String(index);
+        render();
+      });
+      list.appendChild(button);
+    });
+  };
+
+  render();
 }
 
 function getSummaryPrompts(): SummaryPrompt[] {
